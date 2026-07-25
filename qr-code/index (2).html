@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MIDI to MP3 Converter - Free Online Tool</title>
+<meta name="description" content="Convert a MIDI file to a playable MP3 or WAV audio file directly in your browser. No upload to a server, no install.">
+<style>
+  :root{
+    --ink:#1c2b24;
+    --paper:#f6f4ee;
+    --moss:#2f5d4f;
+    --moss-dark:#1e3f35;
+    --clay:#c76f4c;
+    --line:#d8d3c4;
+    --card:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  header{
+    padding:28px 20px 20px;
+    text-align:center;
+    border-bottom:1px solid var(--line);
+  }
+  header h1{margin:0 0 6px;font-size:1.6rem;}
+  header p{margin:0;color:#5a6b62;font-size:.95rem;}
+  .wrap{max-width:720px;margin:0 auto;padding:24px 16px 60px;}
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:26px;
+  }
+  .drop{
+    border:2px dashed var(--line);
+    border-radius:10px;
+    padding:40px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:.15s;
+  }
+  .drop:hover{border-color:var(--moss);background:#f1f5f2;}
+  .drop.dragover{border-color:var(--moss);background:#eaf1ee;}
+  .drop p{margin:6px 0;color:#5a6b62;}
+  .drop strong{color:var(--moss);}
+  input[type=file]{display:none;}
+  .row{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-top:18px;
+    align-items:center;
+  }
+  select{
+    padding:10px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-size:.9rem;
+    background:#fbfaf6;
+  }
+  button{
+    background:var(--moss);
+    color:#fff;
+    border:none;
+    padding:12px 20px;
+    border-radius:8px;
+    font-size:.95rem;
+    font-weight:600;
+    cursor:pointer;
+    transition:.15s;
+  }
+  button:disabled{background:#b7c2bc;cursor:not-allowed;}
+  button:hover:not(:disabled){background:var(--moss-dark);}
+  button.secondary{
+    background:transparent;
+    color:var(--moss);
+    border:1px solid var(--moss);
+  }
+  #file-info{
+    margin-top:14px;
+    font-size:.9rem;
+    color:#3d4a43;
+    display:none;
+  }
+  #status{
+    margin-top:16px;
+    font-size:.9rem;
+    color:#5a6b62;
+    min-height:20px;
+  }
+  .progress-bar{
+    height:8px;
+    background:#e3e0d3;
+    border-radius:4px;
+    overflow:hidden;
+    margin-top:8px;
+    display:none;
+  }
+  .progress-fill{
+    height:100%;
+    background:var(--moss);
+    width:0%;
+    transition:width .2s;
+  }
+  #result{
+    margin-top:20px;
+    display:none;
+  }
+  audio{width:100%;margin-top:10px;}
+  .note{
+    font-size:.8rem;
+    color:#8a9089;
+    margin-top:18px;
+    line-height:1.5;
+  }
+  footer{text-align:center;color:#8a9089;font-size:.8rem;padding:20px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MIDI to MP3 Converter</h1>
+  <p>Upload a .mid file and get back a playable audio file. Runs fully in your browser — nothing is uploaded anywhere.</p>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <div class="drop" id="drop-zone">
+      <p><strong>Click to choose a MIDI file</strong> or drag and drop it here</p>
+      <p>.mid or .midi files only</p>
+      <input type="file" id="midi-file" accept=".mid,.midi">
+    </div>
+
+    <div id="file-info"></div>
+
+    <div class="row">
+      <div>
+        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:6px;">Output format</label>
+        <select id="format">
+          <option value="mp3" selected>MP3</option>
+          <option value="wav">WAV</option>
+        </select>
+      </div>
+      <button id="btn-convert" disabled>Convert</button>
+    </div>
+
+    <div class="progress-bar" id="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div id="status"></div>
+
+    <div id="result">
+      <audio id="audio-preview" controls></audio>
+      <div class="row">
+        <a id="download-link" href="#" download>
+          <button class="secondary" type="button">Download File</button>
+        </a>
+      </div>
+    </div>
+
+    <p class="note">Note: this renders the MIDI using a general-purpose synth voice, so instrument sounds will be close but not identical to the original composition software. For most use cases (previews, drafts, backing tracks) this works well.</p>
+  </div>
+</div>
+
+<footer>Free MIDI tool &middot; Part of the daily tools collection</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<script src="https://unpkg.com/@tonejs/midi@2.0.28/build/Midi.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.0/lame.min.js"></script>
+<script>
+  let midiData = null;
+  let midiFileName = 'converted';
+
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('midi-file');
+  const fileInfo = document.getElementById('file-info');
+  const convertBtn = document.getElementById('btn-convert');
+  const statusEl = document.getElementById('status');
+  const progressBar = document.getElementById('progress-bar');
+  const progressFill = document.getElementById('progress-fill');
+  const resultEl = document.getElementById('result');
+
+  dropZone.addEventListener('click', ()=> fileInput.click());
+  dropZone.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', ()=> dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e=>{
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', e=>{
+    if(e.target.files.length) handleFile(e.target.files[0]);
+  });
+
+  async function handleFile(file){
+    if(!file.name.match(/\.(mid|midi)$/i)){
+      alert('Please choose a .mid or .midi file.');
+      return;
+    }
+    midiFileName = file.name.replace(/\.(mid|midi)$/i, '');
+    const arrayBuffer = await file.arrayBuffer();
+    try{
+      midiData = new Midi(arrayBuffer);
+      fileInfo.style.display = 'block';
+      const durationMin = (midiData.duration/60).toFixed(2);
+      fileInfo.innerHTML = `<strong>${file.name}</strong><br>Tracks: ${midiData.tracks.length} &middot; Duration: ~${durationMin} min`;
+      convertBtn.disabled = false;
+      statusEl.textContent = '';
+      resultEl.style.display = 'none';
+    }catch(err){
+      alert('Could not read this MIDI file: ' + err.message);
+    }
+  }
+
+  convertBtn.addEventListener('click', async ()=>{
+    if(!midiData) return;
+    convertBtn.disabled = true;
+    statusEl.textContent = 'Rendering audio from MIDI...';
+    progressBar.style.display = 'block';
+    progressFill.style.width = '20%';
+
+    try{
+      const duration = midiData.duration + 1; // small tail
+      const buffer = await Tone.Offline(({ transport }) => {
+        midiData.tracks.forEach(track=>{
+          const synth = new Tone.PolySynth(Tone.Synth, {
+            envelope: { attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.6 }
+          }).toDestination();
+          track.notes.forEach(note=>{
+            synth.triggerAttackRelease(
+              note.name,
+              note.duration,
+              note.time,
+              note.velocity
+            );
+          });
+        });
+        transport.start();
+      }, duration);
+
+      progressFill.style.width = '65%';
+      statusEl.textContent = 'Encoding output file...';
+
+      const format = document.getElementById('format').value;
+      let blob, ext;
+
+      if(format === 'wav'){
+        blob = audioBufferToWav(buffer);
+        ext = 'wav';
+      }else{
+        blob = audioBufferToMp3(buffer);
+        ext = 'mp3';
+      }
+
+      progressFill.style.width = '100%';
+      statusEl.textContent = 'Done!';
+
+      const url = URL.createObjectURL(blob);
+      document.getElementById('audio-preview').src = url;
+      const link = document.getElementById('download-link');
+      link.href = url;
+      link.download = midiFileName + '.' + ext;
+      resultEl.style.display = 'block';
+
+    }catch(err){
+      statusEl.textContent = 'Something went wrong: ' + err.message;
+    }finally{
+      convertBtn.disabled = false;
+      setTimeout(()=>{ progressBar.style.display='none'; progressFill.style.width='0%'; }, 800);
+    }
+  });
+
+  // Convert AudioBuffer -> WAV Blob
+  function audioBufferToWav(buffer){
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const format = 1; // PCM
+    const bitDepth = 16;
+
+    let interleaved;
+    if(numChannels === 2){
+      interleaved = interleave(buffer.getChannelData(0), buffer.getChannelData(1));
+    }else{
+      interleaved = buffer.getChannelData(0);
+    }
+
+    const dataLength = interleaved.length * (bitDepth/8);
+    const bufferArr = new ArrayBuffer(44 + dataLength);
+    const view = new DataView(bufferArr);
+
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + dataLength, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, format, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * numChannels * (bitDepth/8), true);
+    view.setUint16(32, numChannels * (bitDepth/8), true);
+    view.setUint16(34, bitDepth, true);
+    writeString(view, 36, 'data');
+    view.setUint32(40, dataLength, true);
+
+    floatTo16BitPCM(view, 44, interleaved);
+    return new Blob([view], { type: 'audio/wav' });
+  }
+
+  function interleave(left, right){
+    const length = left.length + right.length;
+    const result = new Float32Array(length);
+    let index = 0, inputIndex = 0;
+    while(index < length){
+      result[index++] = left[inputIndex];
+      result[index++] = right[inputIndex];
+      inputIndex++;
+    }
+    return result;
+  }
+
+  function floatTo16BitPCM(view, offset, input){
+    for(let i=0; i<input.length; i++, offset+=2){
+      const s = Math.max(-1, Math.min(1, input[i]));
+      view.setInt16(offset, s < 0 ? s*0x8000 : s*0x7FFF, true);
+    }
+  }
+
+  function writeString(view, offset, string){
+    for(let i=0; i<string.length; i++){
+      view.setUint8(offset+i, string.charCodeAt(i));
+    }
+  }
+
+  // Convert AudioBuffer -> MP3 Blob using lamejs
+  function audioBufferToMp3(buffer){
+    const numChannels = Math.min(buffer.numberOfChannels, 2);
+    const sampleRate = buffer.sampleRate;
+    const mp3encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, 128);
+
+    const left = floatTo16BitArray(buffer.getChannelData(0));
+    const right = numChannels === 2 ? floatTo16BitArray(buffer.getChannelData(1)) : null;
+
+    const blockSize = 1152;
+    const mp3Data = [];
+
+    for(let i=0; i < left.length; i += blockSize){
+      const leftChunk = left.subarray(i, i+blockSize);
+      let mp3buf;
+      if(numChannels === 2){
+        const rightChunk = right.subarray(i, i+blockSize);
+        mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+      }else{
+        mp3buf = mp3encoder.encodeBuffer(leftChunk);
+      }
+      if(mp3buf.length > 0) mp3Data.push(new Int8Array(mp3buf));
+    }
+    const end = mp3encoder.flush();
+    if(end.length > 0) mp3Data.push(new Int8Array(end));
+
+    return new Blob(mp3Data, { type: 'audio/mp3' });
+  }
+
+  function floatTo16BitArray(float32Array){
+    const result = new Int16Array(float32Array.length);
+    for(let i=0; i<float32Array.length; i++){
+      const s = Math.max(-1, Math.min(1, float32Array[i]));
+      result[i] = s < 0 ? s*0x8000 : s*0x7FFF;
+    }
+    return result;
+  }
+</script>
+
+</body>
+</html>
