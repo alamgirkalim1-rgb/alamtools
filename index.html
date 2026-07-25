@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Code Generator &amp; Scanner — Free Online Tool</title>
+<meta name="description" content="Generate custom QR codes or scan them instantly with your camera. Free, fast, no signup — works entirely in your browser.">
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --ink:#0b0c0e;
+    --panel:#141518;
+    --panel-2:#1c1e22;
+    --line: rgba(255,255,255,0.09);
+    --paper:#f4f3ef;
+    --signal:#39ff88;
+    --signal-dim: rgba(57,255,136,0.15);
+    --amber:#ffb020;
+    --text:#eceae4;
+    --text-dim:#8b8d92;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  .wrap{
+    max-width:820px;
+    margin:0 auto;
+    padding:56px 24px 80px;
+  }
+
+  header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:24px;
+    margin-bottom:44px;
+    flex-wrap:wrap;
+  }
+
+  .mark{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .mark-grid{
+    width:34px;height:34px;
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    grid-template-rows:repeat(4,1fr);
+    gap:2px;
+  }
+  .mark-grid span{background:var(--text); border-radius:1px;}
+  .mark-grid span:nth-child(2),
+  .mark-grid span:nth-child(5),
+  .mark-grid span:nth-child(8),
+  .mark-grid span:nth-child(10),
+  .mark-grid span:nth-child(13),
+  .mark-grid span:nth-child(16){background:var(--signal);}
+
+  h1{
+    font-family:'Space Mono',monospace;
+    font-size:15px;
+    letter-spacing:0.02em;
+    margin:0;
+    text-transform:uppercase;
+  }
+  .tagline{
+    color:var(--text-dim);
+    font-size:14px;
+    margin-top:6px;
+    max-width:280px;
+    line-height:1.5;
+  }
+
+  .eyebrow{
+    font-family:'Space Mono',monospace;
+    font-size:11px;
+    color:var(--signal);
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    text-align:right;
+  }
+
+  .tabs{
+    display:flex;
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+    margin-bottom:28px;
+    background:var(--panel);
+  }
+  .tab{
+    flex:1;
+    padding:16px;
+    text-align:center;
+    font-family:'Space Mono',monospace;
+    font-size:13px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    cursor:pointer;
+    border:none;
+    background:transparent;
+    transition:color .2s ease, background .2s ease;
+  }
+  .tab.active{
+    color:var(--ink);
+    background:var(--signal);
+  }
+  .tab:not(.active):hover{
+    color:var(--text);
+    background:var(--panel-2);
+  }
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:32px;
+  }
+
+  .field-label{
+    font-family:'Space Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    color:var(--text-dim);
+    display:block;
+    margin-bottom:8px;
+  }
+
+  textarea, select{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    padding:12px 14px;
+    resize:vertical;
+    min-height:88px;
+    outline:none;
+  }
+  textarea:focus, select:focus{
+    border-color:var(--signal);
+  }
+
+  .row{
+    display:flex;
+    gap:16px;
+    margin-top:18px;
+    flex-wrap:wrap;
+  }
+  .row > div{flex:1; min-width:140px;}
+
+  .swatch-row{display:flex; gap:10px; align-items:center;}
+  input[type=color]{
+    width:44px;height:38px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    background:var(--panel-2);
+    padding:2px;
+    cursor:pointer;
+  }
+
+  button.primary{
+    margin-top:24px;
+    width:100%;
+    padding:15px;
+    background:var(--signal);
+    color:var(--ink);
+    border:none;
+    border-radius:8px;
+    font-family:'Space Mono',monospace;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  button.primary:hover{
+    box-shadow:0 0 0 4px var(--signal-dim);
+  }
+  button.primary:active{transform:scale(0.99);}
+
+  .output{
+    margin-top:28px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:16px;
+  }
+  .qr-stage{
+    background:var(--paper);
+    padding:20px;
+    border-radius:10px;
+    position:relative;
+    overflow:hidden;
+    min-height:180px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .qr-stage canvas, .qr-stage img{
+    display:block;
+    max-width:100%;
+  }
+  .scan-line{
+    position:absolute;
+    left:0; right:0;
+    height:2px;
+    background:var(--signal);
+    box-shadow:0 0 12px 2px var(--signal);
+    top:0;
+    animation:sweep 1.6s ease-in-out infinite;
+    display:none;
+  }
+  @keyframes sweep{
+    0%{top:6%;}
+    50%{top:94%;}
+    100%{top:6%;}
+  }
+  .qr-stage.building .scan-line{display:block;}
+
+  .download-btn{
+    font-family:'Space Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--ink);
+    background:var(--text);
+    border:none;
+    padding:10px 18px;
+    border-radius:6px;
+    cursor:pointer;
+    text-decoration:none;
+  }
+  .download-btn:hover{background:var(--amber);}
+
+  /* Scanner */
+  .scan-area{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:18px;
+  }
+  #reader{
+    width:100%;
+    max-width:420px;
+    border-radius:10px;
+    overflow:hidden;
+    border:1px solid var(--line);
+  }
+  .scan-result{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:16px;
+    font-family:'Space Mono',monospace;
+    font-size:13px;
+    word-break:break-all;
+    min-height:40px;
+    color:var(--signal);
+  }
+  .scan-hint{
+    color:var(--text-dim);
+    font-size:13px;
+    text-align:center;
+    max-width:340px;
+    line-height:1.5;
+  }
+  .upload-fallback{
+    font-size:12px;
+    color:var(--text-dim);
+  }
+  .upload-fallback label{
+    color:var(--signal);
+    cursor:pointer;
+    text-decoration:underline;
+  }
+  input[type=file]{display:none;}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  footer{
+    margin-top:56px;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:12px;
+    font-family:'Space Mono',monospace;
+    letter-spacing:0.04em;
+  }
+
+  @media(max-width:520px){
+    .wrap{padding:32px 16px 56px;}
+    .eyebrow{text-align:left;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="mark">
+      <div class="mark-grid">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <div>
+        <h1>QR Toolkit</h1>
+        <div class="tagline">Generate a QR code or scan one — instantly, in your browser. No signup, no uploads to a server.</div>
+      </div>
+    </div>
+    <div class="eyebrow">Free · No Watermark<br>Works Offline After Load</div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="generate">Generate</button>
+    <button class="tab" data-tab="scan">Scan</button>
+  </div>
+
+  <!-- GENERATE PANEL -->
+  <div class="card panel active" id="panel-generate">
+    <label class="field-label">Text, URL, Wi-Fi, or contact info</label>
+    <textarea id="qr-input" placeholder="https://example.com or any text...">https://example.com</textarea>
+
+    <div class="row">
+      <div>
+        <label class="field-label">Foreground</label>
+        <div class="swatch-row">
+          <input type="color" id="fg-color" value="#0b0c0e">
+        </div>
+      </div>
+      <div>
+        <label class="field-label">Background</label>
+        <div class="swatch-row">
+          <input type="color" id="bg-color" value="#ffffff">
+        </div>
+      </div>
+      <div>
+        <label class="field-label">Error correction</label>
+        <select id="ecc-level">
+          <option value="L">Low</option>
+          <option value="M" selected>Medium</option>
+          <option value="Q">Quartile</option>
+          <option value="H">High</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="primary" id="generate-btn">Generate QR Code</button>
+
+    <div class="output">
+      <div class="qr-stage" id="qr-stage">
+        <div class="scan-line"></div>
+        <div id="qr-render"></div>
+      </div>
+      <a class="download-btn" id="download-link" download="qr-code.png" style="display:none;">Download PNG</a>
+    </div>
+  </div>
+
+  <!-- SCAN PANEL -->
+  <div class="card panel" id="panel-scan">
+    <div class="scan-area">
+      <div id="reader"></div>
+      <div class="scan-hint">Point your camera at a QR code — it decodes automatically. If camera access isn't available, upload an image instead.</div>
+      <div class="upload-fallback">
+        <label for="file-input">Upload an image to scan</label>
+        <input type="file" id="file-input" accept="image/*">
+      </div>
+      <div class="scan-result" id="scan-result">Result will appear here…</div>
+    </div>
+  </div>
+
+  <footer>QR TOOLKIT — RUNS ENTIRELY CLIENT-SIDE</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+  // ---- Tabs ----
+  const tabs = document.querySelectorAll('.tab');
+  const panels = {
+    generate: document.getElementById('panel-generate'),
+    scan: document.getElementById('panel-scan')
+  };
+  let scannerStarted = false;
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      Object.values(panels).forEach(p => p.classList.remove('active'));
+      panels[tab.dataset.tab].classList.add('active');
+
+      if(tab.dataset.tab === 'scan' && !scannerStarted){
+        startScanner();
+        scannerStarted = true;
+      }
+    });
+  });
+
+  // ---- Generator ----
+  const qrRender = document.getElementById('qr-render');
+  const qrStage = document.getElementById('qr-stage');
+  const downloadLink = document.getElementById('download-link');
+
+  function renderQR(){
+    const text = document.getElementById('qr-input').value.trim();
+    if(!text) return;
+    const fg = document.getElementById('fg-color').value;
+    const bg = document.getElementById('bg-color').value;
+    const ecc = document.getElementById('ecc-level').value;
+
+    qrStage.classList.add('building');
+
+    setTimeout(() => {
+      qrRender.innerHTML = '';
+      const qr = qrcode(0, ecc);
+      qr.addData(text);
+      qr.make();
+
+      const cellSize = 8;
+      const margin = 4;
+      const count = qr.getModuleCount();
+      const size = (count + margin * 2) * cellSize;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = fg;
+
+      for(let row = 0; row < count; row++){
+        for(let col = 0; col < count; col++){
+          if(qr.isDark(row, col)){
+            ctx.fillRect(
+              (col + margin) * cellSize,
+              (row + margin) * cellSize,
+              cellSize, cellSize
+            );
+          }
+        }
+      }
+
+      qrRender.appendChild(canvas);
+      downloadLink.href = canvas.toDataURL('image/png');
+      downloadLink.style.display = 'inline-block';
+      qrStage.classList.remove('building');
+    }, 500);
+  }
+
+  document.getElementById('generate-btn').addEventListener('click', renderQR);
+  window.addEventListener('DOMContentLoaded', renderQR);
+
+  // ---- Scanner ----
+  const scanResult = document.getElementById('scan-result');
+
+  function onScanSuccess(decodedText){
+    scanResult.textContent = decodedText;
+  }
+
+  function startScanner(){
+    try{
+      const html5QrCode = new Html5Qrcode("reader");
+      Html5Qrcode.getCameras().then(devices => {
+        if(devices && devices.length){
+          html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 240 },
+            onScanSuccess
+          ).catch(() => {
+            scanResult.textContent = "Camera couldn't start — try the image upload option below.";
+          });
+        }
+      }).catch(() => {
+        scanResult.textContent = "No camera found — use the image upload option below.";
+      });
+    } catch(e){
+      scanResult.textContent = "Camera scanning unavailable — use image upload below.";
+    }
+  }
+
+  document.getElementById('file-input').addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const tempId = "temp-file-scanner";
+    let tempDiv = document.getElementById(tempId);
+    if(!tempDiv){
+      tempDiv = document.createElement('div');
+      tempDiv.id = tempId;
+      tempDiv.style.display = 'none';
+      document.body.appendChild(tempDiv);
+    }
+    const html5QrCode = new Html5Qrcode(tempId);
+    html5QrCode.scanFile(file, true)
+      .then(decodedText => {
+        scanResult.textContent = decodedText;
+      })
+      .catch(() => {
+        scanResult.textContent = "Couldn't read a QR code in that image — try another one.";
+      });
+  });
+</script>
+
+</body>
+</html>
