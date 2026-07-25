@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Code Generator & Scanner - Free Online Tool</title>
+<meta name="description" content="Generate QR codes from text or links, or scan a QR code using your camera or an uploaded image. Free, fast, works in your browser.">
+<style>
+  :root{
+    --ink:#1c2b24;
+    --paper:#f6f4ee;
+    --moss:#2f5d4f;
+    --moss-dark:#1e3f35;
+    --clay:#c76f4c;
+    --line:#d8d3c4;
+    --card:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  header{
+    padding:28px 20px 20px;
+    text-align:center;
+    border-bottom:1px solid var(--line);
+  }
+  header h1{
+    margin:0 0 6px;
+    font-size:1.6rem;
+    letter-spacing:.3px;
+  }
+  header p{
+    margin:0;
+    color:#5a6b62;
+    font-size:.95rem;
+  }
+  .wrap{
+    max-width:920px;
+    margin:0 auto;
+    padding:24px 16px 60px;
+  }
+  .tabs{
+    display:flex;
+    gap:8px;
+    margin-bottom:20px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:6px;
+  }
+  .tab{
+    flex:1;
+    text-align:center;
+    padding:10px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+    color:#5a6b62;
+    transition:.15s;
+    user-select:none;
+  }
+  .tab.active{
+    background:var(--moss);
+    color:#fff;
+  }
+  .panel{display:none;}
+  .panel.active{display:block;}
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:22px;
+  }
+  label{
+    display:block;
+    font-size:.85rem;
+    font-weight:600;
+    margin-bottom:6px;
+    color:#3d4a43;
+  }
+  textarea, input[type=file]{
+    width:100%;
+    padding:12px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-size:.95rem;
+    font-family:inherit;
+    resize:vertical;
+    min-height:90px;
+    background:#fbfaf6;
+  }
+  select{
+    padding:10px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-size:.9rem;
+    background:#fbfaf6;
+  }
+  .row{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-top:14px;
+    align-items:center;
+  }
+  button{
+    background:var(--moss);
+    color:#fff;
+    border:none;
+    padding:12px 20px;
+    border-radius:8px;
+    font-size:.95rem;
+    font-weight:600;
+    cursor:pointer;
+    transition:.15s;
+  }
+  button:hover{background:var(--moss-dark);}
+  button.secondary{
+    background:transparent;
+    color:var(--moss);
+    border:1px solid var(--moss);
+  }
+  button.secondary:hover{background:#eaf1ee;}
+  #qr-output{
+    margin-top:24px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:14px;
+  }
+  #qr-canvas-holder{
+    background:#fff;
+    padding:16px;
+    border-radius:10px;
+    border:1px solid var(--line);
+  }
+  .scan-area{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  #reader{
+    width:100%;
+    max-width:420px;
+    margin:0 auto;
+    border-radius:10px;
+    overflow:hidden;
+    border:1px solid var(--line);
+  }
+  .result-box{
+    background:#eef3f0;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:14px;
+    word-break:break-all;
+    font-size:.9rem;
+    display:none;
+  }
+  .result-box.show{display:block;}
+  .divider-label{
+    text-align:center;
+    color:#8a9089;
+    font-size:.8rem;
+    margin:16px 0;
+    text-transform:uppercase;
+    letter-spacing:1px;
+  }
+  footer{
+    text-align:center;
+    color:#8a9089;
+    font-size:.8rem;
+    padding:20px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>QR Code Generator &amp; Scanner</h1>
+  <p>Create a QR code from any text or link, or scan one using your camera or an image file. Everything runs in your browser.</p>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <div class="tab active" data-tab="generate">Generate</div>
+    <div class="tab" data-tab="scan">Scan</div>
+  </div>
+
+  <!-- GENERATE PANEL -->
+  <div class="panel active" id="panel-generate">
+    <div class="card">
+      <label for="qr-text">Text or link</label>
+      <textarea id="qr-text" placeholder="Type a URL, message, phone number, or anything else..."></textarea>
+
+      <div class="row">
+        <div>
+          <label for="qr-size">Size</label>
+          <select id="qr-size">
+            <option value="200">Small (200px)</option>
+            <option value="300" selected>Medium (300px)</option>
+            <option value="500">Large (500px)</option>
+          </select>
+        </div>
+        <div>
+          <label for="qr-color">Color</label>
+          <select id="qr-color">
+            <option value="#1c2b24" selected>Black</option>
+            <option value="#2f5d4f">Green</option>
+            <option value="#c76f4c">Clay</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <button id="btn-generate">Generate QR Code</button>
+      </div>
+
+      <div id="qr-output"></div>
+    </div>
+  </div>
+
+  <!-- SCAN PANEL -->
+  <div class="panel" id="panel-scan">
+    <div class="card scan-area">
+      <div>
+        <label>Scan using your camera</label>
+        <div id="reader"></div>
+        <div class="row">
+          <button id="btn-start-cam">Start Camera</button>
+          <button id="btn-stop-cam" class="secondary">Stop Camera</button>
+        </div>
+      </div>
+
+      <div class="divider-label">or upload an image</div>
+
+      <div>
+        <label for="qr-file">Upload a QR code image</label>
+        <input type="file" id="qr-file" accept="image/*">
+      </div>
+
+      <div id="scan-result" class="result-box"></div>
+    </div>
+  </div>
+</div>
+
+<footer>Free QR tool &middot; Part of the daily tools collection</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script>
+  // Tab switching
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-'+tab.dataset.tab).classList.add('active');
+      if(tab.dataset.tab !== 'scan' && html5QrCode && scanning){
+        stopCamera();
+      }
+    });
+  });
+
+  // ---- GENERATE ----
+  let qrInstance = null;
+  document.getElementById('btn-generate').addEventListener('click', ()=>{
+    const text = document.getElementById('qr-text').value.trim();
+    const size = parseInt(document.getElementById('qr-size').value, 10);
+    const color = document.getElementById('qr-color').value;
+    const output = document.getElementById('qr-output');
+
+    if(!text){
+      alert('Please type some text or a link first.');
+      return;
+    }
+
+    output.innerHTML = '<div id="qr-canvas-holder"></div>';
+    const holder = document.getElementById('qr-canvas-holder');
+
+    new QRCode(holder, {
+      text: text,
+      width: size,
+      height: size,
+      colorDark: color,
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+
+    // Add download button after QR renders
+    setTimeout(()=>{
+      const img = holder.querySelector('img') || holder.querySelector('canvas');
+      const dlBtn = document.createElement('button');
+      dlBtn.textContent = 'Download PNG';
+      dlBtn.className = 'secondary';
+      dlBtn.onclick = ()=>{
+        const canvas = holder.querySelector('canvas');
+        const link = document.createElement('a');
+        link.download = 'qrcode.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      };
+      output.appendChild(dlBtn);
+    }, 150);
+  });
+
+  // ---- SCAN ----
+  let html5QrCode = new Html5Qrcode("reader");
+  let scanning = false;
+
+  function showResult(text){
+    const box = document.getElementById('scan-result');
+    box.classList.add('show');
+    box.innerHTML = '<strong>Result:</strong><br>' + text.replace(/</g,'&lt;');
+  }
+
+  document.getElementById('btn-start-cam').addEventListener('click', ()=>{
+    if(scanning) return;
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decodedText)=>{
+        showResult(decodedText);
+      },
+      (errorMessage)=>{ /* ignore per-frame errors */ }
+    ).then(()=>{ scanning = true; })
+    .catch(err=>{
+      alert('Could not start camera: ' + err);
+    });
+  });
+
+  function stopCamera(){
+    if(!scanning) return;
+    html5QrCode.stop().then(()=>{ scanning = false; }).catch(()=>{});
+  }
+  document.getElementById('btn-stop-cam').addEventListener('click', stopCamera);
+
+  document.getElementById('qr-file').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    html5QrCode.scanFile(file, true)
+      .then(decodedText=>{
+        showResult(decodedText);
+      })
+      .catch(err=>{
+        showResult('Could not read a QR code from this image.');
+      });
+  });
+</script>
+
+</body>
+</html>
